@@ -142,7 +142,7 @@ footer{background:var(--blue-deep);color:#D6E6F8}
         <select id="grade" name="grade" required><option value="">اختر الصف</option><option>الصف العاشر</option><option>الصف الحادي عشر</option><option>الصف الثاني عشر</option></select></div>
       <div class="field"><label for="topic">عنوان البحث من الموسوعة العمانية</label><input id="topic" name="encyclopediaTopic" required placeholder="مثال: الأفلاج في سلطنة عُمان"></div>
       <div class="field"><label for="type">نوع العمل المرفق</label>
-        <select id="type" name="workType" required><option value="">اختر النوع</option><option>إنفوجرافيك</option><option>فيديو</option><option>خريطة</option><option>تقرير تقييم</option></select></div>
+        <select id="type" name="workType" required><option value="">اختر النوع</option><option>إنفوجرافيك</option><option>فيديو</option><option>خريطة</option><option>تقرير تقييم</option><option>صور</option></select></div>
       <div class="field"><label for="link">رابط العمل السحابي</label><input id="link" name="cloudLink" type="url" required dir="ltr" placeholder="https://drive.google.com/..." style="text-align:right"></div>
       <p id="formError" class="text-sm font-bold hidden" style="color:#D93636" role="alert"></p>
       <button id="submitBtn" class="btn-blue" type="submit">أرسل العمل</button>
@@ -174,9 +174,9 @@ footer{background:var(--blue-deep);color:#D6E6F8}
 
 <script>
 /* ===== بيانات المعرض: تُجلب مباشرة من /api/works ولا تُعرض أعمال تجريبية ===== */
-const TYPES = {all:"الكل", infographic:"إنفوجرافيك", video:"مقاطع فيديو", map:"خرائط تفاعلية", report:"تقارير تقييم"};
-const TYPE_LABEL = {infographic:"إنفوجرافيك", video:"مقطع فيديو", map:"خريطة تفاعلية", report:"تقرير تقييم"};
-const LOOK = {infographic:["📊","#1E88E5"], video:["🎬","#C8962E"], map:["🗺️","#2E8B6A"], report:["📝","#0B2E5C"]};
+const TYPES = {all:"الكل", infographic:"إنفوجرافيك", video:"مقاطع فيديو", map:"خرائط تفاعلية", report:"تقارير تقييم", image:"صور"};
+const TYPE_LABEL = {infographic:"إنفوجرافيك", video:"مقطع فيديو", map:"خريطة تفاعلية", report:"تقرير تقييم", image:"صورة"};
+const LOOK = {infographic:["📊","#1E88E5"], video:["🎬","#C8962E"], map:["🗺️","#2E8B6A"], report:["📝","#0B2E5C"], image:["🖼️","#8E44AD"]};
 // للمعلم: زر «دخول المشرف» أسفل الصفحة يطلب المفتاح ويحفظه لهذه الجلسة فقط، ولا يمرّ في الرابط.
 const staleParams = new URLSearchParams(location.search);
 if (staleParams.has("admin")) {

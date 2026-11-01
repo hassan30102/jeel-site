@@ -7,7 +7,8 @@ const TYPE_MAP = {
   "إنفوجرافيك": "infographic",
   "فيديو": "video",
   "خريطة": "map",
-  "تقرير تقييم": "report"
+  "تقرير تقييم": "report",
+  "صور": "image"
 };
 
 const ALLOWED_GRADES = new Set(["الصف العاشر", "الصف الحادي عشر", "الصف الثاني عشر"]);
