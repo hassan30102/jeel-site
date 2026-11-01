@@ -20,7 +20,8 @@ const HOSTS = [
   "onedrive.live.com",
   "sharepoint.com",
   "youtube.com",
-  "youtu.be"
+  "youtu.be",
+  "jeel-site.pages.dev"
 ];
 
 const MAX_BODY_BYTES = 4096;

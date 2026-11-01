@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>خريطة عُمان وفصولها</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* التصميم: خريطة طولية لعُمان بألوان الرمل والبحر الفيروزي، وتظليل حراري يتغير بتغير الفصل، ولوحة جانبية تشرح الفصل والمكان المختار */
+:root{
+  --sea:#bfe3e6; --sea-deep:#8fcdd3; --land:#ecdcb8; --neigh:#f3ead3; --edge:#a8884f;
+  --ink:#2a2418; --muted:#6d6247; --card:#fffaf0; --line:#e1d3ae; --accent:#0f6f6a; --accent-ink:#ffffff; --gold:#b8862b;
+  --pin-mountain:#7a5a3a; --pin-sea:#1f7fa8; --pin-desert:#c98a1a; --pin-wadi:#2f9460; --pin-heritage:#9b3d57;
+  --bg:#f6efdd; --label:#4a4129; --label-sea:#2c6f78;
+  --font-display:"Reem Kufi","Tajawal",system-ui,sans-serif; --font-body:"Tajawal",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --sea:#0e2a33; --sea-deep:#0a1f27; --land:#3a3322; --neigh:#2a2619; --edge:#8a7144;
+    --ink:#f1e8d0; --muted:#bdb08c; --card:#1b2226; --line:#334049; --accent:#4fc1b8; --accent-ink:#06201e; --gold:#e0b45a;
+    --pin-mountain:#d2a373; --pin-sea:#58b9e0; --pin-desert:#eab04a; --pin-wadi:#5fd093; --pin-heritage:#e27a96;
+    --bg:#10181c; --label:#e6dcc0; --label-sea:#7fc4cc; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --sea:#0e2a33; --sea-deep:#0a1f27; --land:#3a3322; --neigh:#2a2619; --edge:#8a7144;
+  --ink:#f1e8d0; --muted:#bdb08c; --card:#1b2226; --line:#334049; --accent:#4fc1b8; --accent-ink:#06201e; --gold:#e0b45a;
+  --pin-mountain:#d2a373; --pin-sea:#58b9e0; --pin-desert:#eab04a; --pin-wadi:#5fd093; --pin-heritage:#e27a96;
+  --bg:#10181c; --label:#e6dcc0; --label-sea:#7fc4cc; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.6;
+  padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto}
+header h1{font-family:var(--font-display);font-size:clamp(1.9rem,4vw,2.8rem);margin:0;line-height:1.2;text-wrap:balance;color:var(--accent)}
+header p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px 22px;margin:18px 0 14px;align-items:center}
+.group{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.group>span{font-size:.85rem;color:var(--muted);letter-spacing:.02em}
+button.chip{font:inherit;font-size:.95rem;border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:6px 14px;border-radius:999px;cursor:pointer;min-height:40px}
+button.chip:hover{border-color:var(--accent)}
+button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:focus-visible,.pin:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
+.mapbox{position:relative;border:2px solid var(--line);border-radius:14px;overflow:hidden;background:var(--sea);touch-action:none}
+svg#map{display:block;width:100%;height:auto;max-height:82vh;aspect-ratio:810/1010;cursor:grab;margin:0 auto}
+svg#map.drag{cursor:grabbing}
+.zoom{position:absolute;inset-inline-start:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:42px;height:42px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:700 20px var(--font-body);cursor:pointer}
+.legend{position:absolute;inset-inline-end:10px;bottom:10px;background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.78rem;min-width:150px}
+.legend .ramp{height:9px;border-radius:5px;background:linear-gradient(90deg,#4aa3c9,#9ccf8a,#f2c14e,#ee7b3b,#d1442f);margin:5px 0 2px}
+.legend .ends{display:flex;justify-content:space-between;color:var(--muted)}
+.side{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px}
+.card h2{font-family:var(--font-display);font-size:1.35rem;margin:0 0 2px}
+.card .months{color:var(--gold);font-weight:700;font-size:.9rem}
+.card p{margin:8px 0 0}
+table{width:100%;border-collapse:collapse;font-size:.92rem;margin-top:8px}
+td{padding:5px 0;border-bottom:1px dashed var(--line)}
+td:last-child{text-align:left;font-variant-numeric:tabular-nums;direction:ltr;font-weight:700}
+tr.sel td{color:var(--accent)}
+.tag{display:inline-block;font-size:.78rem;padding:2px 10px;border-radius:999px;border:1px solid var(--line);margin-inline-end:6px;margin-top:6px}
+.tag.now{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.kind{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.hint{color:var(--muted);font-size:.9rem}
+.note{font-size:.8rem;color:var(--muted);margin-top:14px}
+.pin{cursor:pointer}
+.pin .halo{fill:none;stroke-width:2;opacity:0}
+.pin.best .halo{opacity:.9;animation:pulse 2.2s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(1.9);opacity:0}}
+@media (prefers-reduced-motion: reduce){.pin.best .halo{animation:none;opacity:.7}}
+.pin.dim{opacity:.22}
+.lbl{font-family:var(--font-body);fill:var(--label);paint-order:stroke;stroke:var(--land);stroke-width:3;stroke-linejoin:round;pointer-events:none}
+.lbl-sea{font-family:var(--font-display);fill:var(--label-sea);letter-spacing:.08em;pointer-events:none}
+.lbl-neigh{font-family:var(--font-display);fill:var(--muted);opacity:.55;pointer-events:none}
+.temp{font-family:var(--font-body);font-weight:700;direction:ltr;unicode-bidi:isolate}
+@media (max-width:920px){.main{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>خريطة عُمان وفصولها</h1>
+  <p>اختر الفصل لترى كيف تتغير الحرارة بين مسندم وظفار، ثم المس أي علامة لتعرف المكان ومتى يكون أجمل.</p>
+</header>
+
+<div class="bar">
+  <div class="group" role="group" aria-label="الفصول"><span>الفصل</span><span id="seasons" style="display:contents"></span></div>
+  <div class="group" role="group" aria-label="نوع المكان"><span>نوع المكان</span><span id="kinds" style="display:contents"></span></div>
+</div>
+
+<div class="main">
+  <div class="mapbox">
+    <svg id="map" viewBox="0 0 810 1010" role="img" aria-label="خريطة تفاعلية لسلطنة عُمان">
+      <defs>
+        <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+        <clipPath id="clip"><path id="clipA"/><path id="clipB"/><path id="clipC"/></clipPath>
+        <pattern id="waves" width="46" height="46" patternUnits="userSpaceOnUse"><path d="M0 23 q11.5-10 23 0 t23 0" fill="none" stroke="var(--sea-deep)" stroke-width="1.4" opacity=".5"/></pattern>
+      </defs>
+      <rect x="-400" y="-300" width="1700" height="1700" fill="var(--sea)"/>
+      <rect x="-400" y="-300" width="1700" height="1700" fill="url(#waves)"/>
+      <path id="neigh" fill="var(--neigh)" stroke="var(--edge)" stroke-width="1" stroke-dasharray="5 4"/>
+      <path id="oman" fill="var(--land)" stroke="var(--edge)" stroke-width="2.2" stroke-linejoin="round"/>
+      <path id="mus" fill="var(--land)" stroke="var(--edge)" stroke-width="2.2" stroke-linejoin="round"/>
+      <path id="masirah" fill="var(--land)" stroke="var(--edge)" stroke-width="2" stroke-linejoin="round"/>
+      <g id="blobs" clip-path="url(#clip)" filter="url(#soft)" opacity=".8"></g>
+      <g id="seaLabels"></g><g id="neighLabels"></g><g id="regionLabels"></g><g id="pins"></g>
+      <g id="compass"></g>
+    </svg>
+    <div class="zoom"><button id="zin" aria-label="تكبير">+</button><button id="zout" aria-label="تصغير">−</button><button id="zreset" aria-label="إعادة العرض" style="font-size:15px">⟲</button></div>
+    <div class="legend"><b id="legTitle">الحرارة العظمى</b><div class="ramp"></div><div class="ends"><span>18°</span><span>46°م</span></div></div>
+  </div>
+
+  <aside class="side">
+    <section class="card" id="seasonCard"></section>
+    <section class="card" id="placeCard"><h2>اختر مكانًا</h2><p class="hint">المس علامة على الخريطة. العلامات المتوهجة هي الأنسب في الفصل المختار.</p></section>
+    <p class="note">الحرارة والمواقع تقريبية للتعلم والاستكشاف، وليست للملاحة. الخريطة مبسّطة الرسم.</p>
+  </aside>
+</div>
+</div>
+
+<script>
+(function(){
+  var W=810,H=1010;
+  function X(lon){return (lon-51.6)*93}
+  function Y(lat){return (26.7-lat)*100}
+  function path(pts){return 'M'+pts.map(function(p){return X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)}).join('L')+'Z'}
+
+  var OMAN=[[56.36,24.98],[56.55,24.65],[56.75,24.4],[57.1,24.05],[57.45,23.85],[57.88,23.68],[58.2,23.68],[58.6,23.63],[58.75,23.55],[58.9,23.28],[59.2,22.98],[59.52,22.58],[59.82,22.52],[59.85,22.28],[59.6,21.8],[59.2,21.2],[58.9,20.6],[58.7,20.4],[58.1,19.95],[57.7,19.65],[57.8,19.0],[57.1,18.6],[56.6,18.1],[56.0,17.85],[55.35,17.4],[54.7,16.97],[54.1,17.0],[53.4,16.75],[52.7,16.65],[52.2,16.65],[52.0,19.0],[55.0,20.0],[55.67,22.0],[55.2,22.7],[55.2,23.1],[55.5,23.9],[55.75,24.2],[56.0,24.6]];
+  var MUS=[[56.05,26.25],[56.4,26.4],[56.35,26.05],[56.27,25.62],[56.1,25.72],[56.0,26.0]];
+  var MAS=[[58.6,20.7],[58.85,20.75],[58.9,20.4],[58.75,20.15],[58.62,20.3]];
+  var NEIGH=[[51.6,16.6],[52.2,16.65],[52.0,19.0],[55.0,20.0],[55.67,22.0],[55.2,22.7],[55.2,23.1],[55.5,23.9],[55.75,24.2],[56.0,24.6],[56.36,24.98],[56.3,25.6],[55.0,25.4],[54.0,24.4],[52.0,24.1],[51.6,24.3]];
+  ['oman','clipA'].forEach(function(id){document.getElementById(id).setAttribute('d',path(OMAN))});
+  ['mus','clipB'].forEach(function(id){document.getElementById(id).setAttribute('d',path(MUS))});
+  ['masirah','clipC'].forEach(function(id){document.getElementById(id).setAttribute('d',path(MAS))});
+  document.getElementById('neigh').setAttribute('d',path(NEIGH));
+
+  var SEASONS=[
+    {k:'winter',n:'الشتاء',m:'ديسمبر – فبراير',t:'أجمل أيام السنة للتنزه. الجو معتدل على الساحل وبارد في الجبال، وقد تقترب الحرارة من الصفر ليلًا فوق الجبل الأخضر وجبل شمس.'},
+    {k:'spring',n:'الربيع',m:'مارس – مايو',t:'تتفتح ورود الجبل الأخضر في أواخر مارس وأبريل، وترتفع الحرارة تدريجيًا في الداخل والساحل.'},
+    {k:'summer',n:'الصيف',m:'يونيو – سبتمبر',t:'حرٌّ شديد في الداخل والباطنة والظاهرة. أما في ظفار فيبدأ «الخريف»: رذاذ وضباب وخضرة وشلالات، فتقصدها العائلات من أنحاء الخليج.'},
+    {k:'autumn',n:'الخريف',m:'أكتوبر – نوفمبر',t:'اعتدال بعد حر الصيف، وموسم مناسب للأودية والشواطئ والرحلات الصحراوية قبل برد الشتاء.'}
+  ];
+  /* r: نصف قطر البقعة الحرارية، t: [أدنى، أعلى] لكل فصل بترتيب (شتاء، ربيع، صيف، خريف) */
+  var REGIONS=[
+    {n:'مسندم',lon:56.25,lat:26.05,r:42,t:[[14,23],[20,32],[29,42],[22,34]],lx:-6,ly:-30},
+    {n:'الباطنة',lon:57.25,lat:23.95,r:70,t:[[16,26],[22,36],[30,43],[22,35]],lx:0,ly:-34},
+    {n:'مسقط',lon:58.5,lat:23.58,r:44,t:[[18,26],[24,36],[30,41],[24,34]],lx:30,ly:0},
+    {n:'الظاهرة والبريمي',lon:55.9,lat:23.5,r:90,t:[[10,25],[20,38],[28,46],[18,34]],lx:0,ly:0},
+    {n:'الداخلية',lon:57.5,lat:22.55,r:100,t:[[9,24],[20,36],[27,44],[17,34]],lx:0,ly:0},
+    {n:'الشرقية',lon:59.0,lat:22.0,r:92,t:[[16,27],[22,36],[29,43],[22,34]],lx:0,ly:10},
+    {n:'الوسطى',lon:57.0,lat:19.8,r:170,t:[[14,28],[22,38],[28,44],[21,35]],lx:0,ly:0},
+    {n:'ظفار',lon:54.3,lat:17.6,r:120,t:[[18,28],[23,33],[22,30],[22,32]],lx:0,ly:0,khareef:true}
+  ];
+  var KINDS=[{k:'all',n:'الكل'},{k:'mountain',n:'جبال',c:'--pin-mountain'},{k:'sea',n:'بحر وشواطئ',c:'--pin-sea'},{k:'desert',n:'صحراء',c:'--pin-desert'},{k:'wadi',n:'أودية',c:'--pin-wadi'},{k:'heritage',n:'قلاع وتراث',c:'--pin-heritage'}];
+  var PLACES=[
+    {n:'فيوردات خصب',g:'مسندم',kd:'sea',lon:56.25,lat:26.18,b:['winter','spring','autumn'],d:'خيران بحرية تدخل بين جبال شاهقة، تشبه سواحل شمال أوروبا. تُزار بالسفن الشراعية التقليدية (الداو) ويُشاهَد فيها الدلفين.'},
+    {n:'صحار',g:'شمال الباطنة',kd:'heritage',lon:56.75,lat:24.35,b:['winter','spring','autumn'],d:'مدينة ميناء قديمة تُنسب إليها قصة السندباد البحري، وفيها قلعة صحار وسفينة «صحار» التي أبحرت إلى الصين.'},
+    {n:'قلعة الرستاق',g:'جنوب الباطنة',kd:'heritage',lon:57.43,lat:23.39,b:['winter','spring','autumn'],d:'من أقدم قلاع عُمان، كانت عاصمة الإمامة في عهد اليعاربة، وتحيط بها عيون وبساتين.'},
+    {n:'قلعة نخل وعين الثوارة',g:'جنوب الباطنة',kd:'heritage',lon:57.83,lat:23.39,b:['winter','autumn'],d:'قلعة على صخرة عالية بين النخيل، وبالقرب منها عين حارة يقصدها الناس للاستشفاء والسباحة.'},
+    {n:'جامع السلطان قابوس الأكبر',g:'مسقط',kd:'heritage',lon:58.4,lat:23.58,b:['winter','spring','autumn'],d:'تحفة معمارية تتسع لآلاف المصلين، وفيها ثريا عملاقة وسجادة صلاة منسوجة بيد واحدة من أكبر السجادات في العالم.'},
+    {n:'مطرح وسوقها',g:'مسقط',kd:'heritage',lon:58.57,lat:23.62,b:['winter','spring','autumn'],d:'كورنيش وميناء وسوق قديم تُباع فيه الفضة والخناجر واللبان والبخور، وتُطل عليه القلاع القديمة.'},
+    {n:'قلعة بهلاء',g:'الداخلية',kd:'heritage',lon:57.3,lat:22.97,b:['winter','spring','autumn'],d:'مسجّلة في قائمة التراث العالمي لليونسكو، وتشتهر بأسوار الطين الواسعة وسوقها وصناعة الفخار.'},
+    {n:'قلعة جبرين',g:'الداخلية',kd:'heritage',lon:57.36,lat:22.9,b:['winter','spring','autumn'],d:'قصر حصين بُني في القرن السابع عشر، يشتهر بسقوفه الخشبية المزخرفة وغرفه الكثيرة.'},
+    {n:'قلعة نزوى',g:'الداخلية',kd:'heritage',lon:57.53,lat:22.93,b:['winter','spring','autumn'],d:'برجها الدائري الضخم من أشهر معالم عُمان، وبجانبها سوق نزوى ومزارع النخيل.'},
+    {n:'الجبل الأخضر',g:'الداخلية',kd:'mountain',lon:57.65,lat:23.07,b:['winter','spring'],d:'مدرجات زراعية تُنبت الرمان والورد الجبلي. تتفتح الورود في مارس وأبريل، ويكون جوه بارد شتاءً ومعتدلًا صيفًا.'},
+    {n:'جبل شمس',g:'الداخلية',kd:'mountain',lon:57.27,lat:23.24,b:['winter','autumn'],d:'أعلى قمة في عُمان (نحو 3000 متر) وفيه وادٍ عميق يُسمى «جراند كانيون عُمان».'},
+    {n:'وادي بني خالد',g:'شمال الشرقية',kd:'wadi',lon:59.1,lat:22.62,b:['winter','spring','autumn'],d:'بِرك صافية بين نخيل وجبال، مناسبة للسباحة والتصوير في الفصول المعتدلة.'},
+    {n:'وادي شاب',g:'جنوب الشرقية',kd:'wadi',lon:59.23,lat:22.83,b:['winter','spring','autumn'],d:'ممر مائي بين جبال حادة ينتهي بكهف ومسبح، تُسلك إليه الطريق بالقارب ثم مشيًا.'},
+    {n:'رمال الشرقية',g:'الشرقية',kd:'desert',lon:58.8,lat:21.9,b:['winter','autumn'],d:'بحر من الكثبان الرملية الحمراء، يسكنها البدو، وتُخيَّم فيها الأسر في الشتاء.'},
+    {n:'رأس الجنز',g:'جنوب الشرقية',kd:'sea',lon:59.82,lat:22.3,b:['summer','autumn'],d:'أول مكان تشرق عليه الشمس في شبه الجزيرة العربية، وتضع فيه السلاحف الخضراء بيضها على الشاطئ ليلًا.'},
+    {n:'صور وصناعة السفن',g:'جنوب الشرقية',kd:'heritage',lon:59.53,lat:22.57,b:['winter','spring','autumn'],d:'مدينة بحارة عريقة ما زالت فيها أحواض صناعة السفن الخشبية التقليدية والفنار القديم.'},
+    {n:'جزيرة مصيرة',g:'جنوب الشرقية',kd:'sea',lon:58.77,lat:20.5,b:['summer','spring'],d:'أكبر جزر عُمان. رياحها القوية في الصيف تجعلها مقصد رياضات الأمواج والرياح، وشواطئها تقصدها السلاحف.'},
+    {n:'ساحل الدقم',g:'الوسطى',kd:'sea',lon:57.7,lat:19.65,b:['winter','spring'],d:'صخور وهضاب ساحلية بألوان غريبة وتكوينات جيولوجية نادرة يزورها علماء الأرض والمصورون.'},
+    {n:'الربع الخالي',g:'الوسطى وظفار',kd:'desert',lon:54.7,lat:19.3,b:['winter'],d:'أكبر صحراء رملية متصلة في العالم، يمتد جزء منها في عُمان وتكثر فيها الكثبان العالية.'},
+    {n:'صلالة والبليد',g:'ظفار',kd:'heritage',lon:54.1,lat:17.0,b:['summer','winter'],d:'مدينة اللبان والبخور. موقع «أرض اللبان» مسجّل لدى اليونسكو، وفي موسم الخريف تكسوها الخضرة والضباب.'},
+    {n:'خور روري (سمهرم)',g:'ظفار',kd:'heritage',lon:54.43,lat:17.04,b:['winter','autumn'],d:'مدينة ميناء قديمة كانت تصدّر اللبان، تطل على خور تعيش فيه الطيور المهاجرة.'},
+    {n:'وادي دربات',g:'ظفار',kd:'wadi',lon:54.45,lat:17.15,b:['summer'],d:'شلال وبحيرة وسط جبال خضراء. تتدفق مياهه في موسم الخريف، فيصبح أحد أجمل أماكن عُمان.'},
+    {n:'شاطئ المغسيل',g:'غرب ظفار',kd:'sea',lon:53.77,lat:16.88,b:['summer','winter'],d:'شاطئ طويل وصخور تدفع الماء عاليًا من فتحات طبيعية تسمى «النافورات»، خصوصًا في موسم الخريف.'}
+  ];
+
+  var state={season:3-1,kind:'all',place:null};
+  function el(tag,attrs,parent){var e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+  function heat(t){
+    var stops=[[0,[74,163,201]],[.35,[156,207,138]],[.6,[242,193,78]],[.85,[238,123,59]],[1,[209,68,47]]];
+    var v=Math.max(0,Math.min(1,(t-18)/28));
+    for(var i=1;i<stops.length;i++){if(v<=stops[i][0]){var a=stops[i-1],b=stops[i],f=(v-a[0])/(b[0]-a[0]);
+      return 'rgb('+a[1].map(function(c,j){return Math.round(c+(b[1][j]-c)*f)}).join(',')+')'}}
+    return 'rgb(209,68,47)';
+  }
+
+  /* القوائم */
+  var secBox=document.getElementById('seasons'),kindBox=document.getElementById('kinds');
+  SEASONS.forEach(function(s,i){var b=document.createElement('button');b.className='chip';b.textContent=s.n;b.dataset.i=i;b.onclick=function(){state.season=i;render()};secBox.appendChild(b)});
+  KINDS.forEach(function(k){var b=document.createElement('button');b.className='chip';b.textContent=k.n;b.dataset.k=k.k;b.onclick=function(){state.kind=k.k;render()};kindBox.appendChild(b)});
+
+  /* عناصر الخريطة */
+  var blobs=document.getElementById('blobs'),regLbl=document.getElementById('regionLabels'),pinG=document.getElementById('pins');
+  var blobEls=REGIONS.map(function(r){return el('circle',{cx:X(r.lon),cy:Y(r.lat),r:r.r},blobs)});
+  var regEls=REGIONS.map(function(r){
+    var g=el('g',{},regLbl);
+    var a=el('text',{'text-anchor':'middle','class':'lbl'},g);a.textContent=r.n;
+    var b=el('text',{'text-anchor':'middle','class':'lbl temp'},g);
+    return {g:g,a:a,b:b};
+  });
+  var pinEls=PLACES.map(function(p,i){
+    var g=el('g',{'class':'pin',tabindex:0,role:'button','aria-label':p.n},pinG);
+    var h=el('circle',{'class':'halo',cx:0,cy:0,r:12},g);
+    var c=el('circle',{cx:0,cy:0,r:7,'stroke':'#fff','stroke-width':2},g);
+    var t=el('text',{'class':'lbl',x:0,y:-12,'text-anchor':'middle','font-size':14},g);t.textContent=p.n;t.style.display='none';
+    g.addEventListener('click',function(e){e.stopPropagation();state.place=i;render()});
+    g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();state.place=i;render()}});
+    return {g:g,h:h,c:c,t:t,p:p};
+  });
+  var seaL=document.getElementById('seaLabels');
+  [['بحر العرب',58,16.5,26],['خليج عُمان',58.9,24.6,20],['الخليج العربي',53.5,25.7,18]].forEach(function(s){var t=el('text',{x:X(s[1]),y:Y(s[2]),'text-anchor':'middle','font-size':s[3],'class':'lbl-sea'},seaL);t.textContent=s[0]});
+  var nL=document.getElementById('neighLabels');
+  [['السعودية',53.2,21.6],['اليمن',51.95,17.4],['الإمارات',54.4,24.5]].forEach(function(s){var t=el('text',{x:X(s[1]),y:Y(s[2]),'text-anchor':'middle','font-size':26,'class':'lbl-neigh'},nL);t.textContent=s[0]});
+  var comp=document.getElementById('compass');
+  el('path',{d:'M0 -30 L8 0 L0 30 L-8 0Z',fill:'var(--gold)',opacity:.9},comp);
+  var cn=el('text',{y:-38,'text-anchor':'middle','font-size':16,fill:'var(--label)','font-family':'var(--font-display)'},comp);cn.textContent='ش';
+  comp.setAttribute('transform','translate(740 70)');
+
+  /* التكبير والسحب */
+  var view={x:0,y:0,w:W,h:H},svg=document.getElementById('map');
+  function applyView(){
+    view.w=Math.max(160,Math.min(W,view.w));view.h=view.w*H/W;
+    view.x=Math.max(-60,Math.min(W-view.w+60,view.x));view.y=Math.max(-60,Math.min(H-view.h+60,view.y));
+    svg.setAttribute('viewBox',view.x.toFixed(1)+' '+view.y.toFixed(1)+' '+view.w.toFixed(1)+' '+view.h.toFixed(1));
+    sizes();
+  }
+  function zoomAt(f,cx,cy){
+    var nw=view.w*f;nw=Math.max(160,Math.min(W,nw));f=nw/view.w;
+    view.x=cx-(cx-view.x)*f;view.y=cy-(cy-view.y)*f;view.w=nw;applyView();
+  }
+  function pt(ev){var r=svg.getBoundingClientRect();return [view.x+(ev.clientX-r.left)/r.width*view.w,view.y+(ev.clientY-r.top)/r.height*view.h]}
+  document.getElementById('zin').onclick=function(){zoomAt(.7,view.x+view.w/2,view.y+view.h/2)};
+  document.getElementById('zout').onclick=function(){zoomAt(1/.7,view.x+view.w/2,view.y+view.h/2)};
+  document.getElementById('zreset').onclick=function(){view={x:0,y:0,w:W,h:H};applyView()};
+  svg.addEventListener('wheel',function(e){e.preventDefault();var p=pt(e);zoomAt(e.deltaY<0?.85:1/.85,p[0],p[1])},{passive:false});
+  var drag=null;
+  svg.addEventListener('pointerdown',function(e){if(e.target.closest('.pin'))return;drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y};svg.setPointerCapture(e.pointerId);svg.classList.add('drag')});
+  svg.addEventListener('pointermove',function(e){if(!drag)return;var r=svg.getBoundingClientRect();view.x=drag.vx-(e.clientX-drag.x)/r.width*view.w;view.y=drag.vy-(e.clientY-drag.y)/r.height*view.h;applyView()});
+  function end(){drag=null;svg.classList.remove('drag')}
+  svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+  svg.addEventListener('click',function(){if(state.place!==null){state.place=null;render()}});
+
+  function sizes(){
+    var k=W/view.w;
+    pinEls.forEach(function(o){
+      var p=o.p,x=X(p.lon),y=Y(p.lat);
+      o.g.setAttribute('transform','translate('+x.toFixed(1)+' '+y.toFixed(1)+') scale('+(1/Math.sqrt(k)).toFixed(3)+')');
+      o.t.style.display=(k>=2.2||state.place!==null&&PLACES[state.place]===p)?'block':'none';
+    });
+    regEls.forEach(function(o,i){
+      var r=REGIONS[i],s=1/Math.sqrt(k);
+      o.g.setAttribute('transform','translate('+(X(r.lon)+(r.lx||0)).toFixed(1)+' '+(Y(r.lat)+(r.ly||0)).toFixed(1)+') scale('+s.toFixed(3)+')');
+      o.a.setAttribute('y',-2);o.a.setAttribute('font-size',17);o.b.setAttribute('y',18);o.b.setAttribute('font-size',15);
+    });
+    comp.setAttribute('transform','translate('+(view.x+view.w-70/Math.sqrt(k)).toFixed(1)+' '+(view.y+70/Math.sqrt(k)).toFixed(1)+') scale('+(1/Math.sqrt(k)).toFixed(3)+')');
+  }
+
+  function render(){
+    var s=SEASONS[state.season];
+    Array.prototype.forEach.call(secBox.children,function(b,i){b.setAttribute('aria-pressed',i===state.season)});
+    Array.prototype.forEach.call(kindBox.children,function(b){b.setAttribute('aria-pressed',b.dataset.k===state.kind)});
+    REGIONS.forEach(function(r,i){
+      var t=r.t[state.season],mx=t[1];
+      var col=(r.khareef&&s.k==='summer')?'#3fae8c':heat(mx);
+      blobEls[i].setAttribute('fill',col);
+      regEls[i].b.textContent=t[0]+'–'+t[1]+'°';
+    });
+    pinEls.forEach(function(o,i){
+      var p=o.p,show=(state.kind==='all'||p.kd===state.kind),best=p.b.indexOf(s.k)>-1;
+      var kc=KINDS.filter(function(k){return k.k===p.kd})[0].c;
+      o.c.setAttribute('fill','var('+kc+')');o.h.setAttribute('stroke','var('+kc+')');
+      o.g.setAttribute('class','pin'+(best&&show?' best':'')+(show?'':' dim')+(state.place===i?' sel':''));
+      o.c.setAttribute('r',state.place===i?10:7);
+    });
+    /* لوحة الفصل */
+    var rows=REGIONS.map(function(r){var t=r.t[state.season];
+      return '<tr><td>'+r.n+(r.khareef&&s.k==='summer'?' <span class="tag now">خريف ظفار</span>':'')+'</td><td>'+t[0]+' – '+t[1]+' °م</td></tr>'}).join('');
+    document.getElementById('seasonCard').innerHTML='<h2>'+s.n+'</h2><div class="months">'+s.m+'</div><p>'+s.t+'</p><table aria-label="الحرارة التقريبية حسب المنطقة">'+rows+'</table>';
+    /* لوحة المكان */
+    var pc=document.getElementById('placeCard');
+    if(state.place===null){
+      pc.innerHTML='<h2>اختر مكانًا</h2><p class="hint">المس علامة على الخريطة. العلامات المتوهجة هي الأنسب في '+s.n+'.</p>';
+    }else{
+      var p=PLACES[state.place],kd=KINDS.filter(function(k){return k.k===p.kd})[0];
+      var best=p.b.indexOf(s.k)>-1;
+      var tags=SEASONS.map(function(x){return '<span class="tag'+(p.b.indexOf(x.k)>-1?' now':'')+'" style="'+(p.b.indexOf(x.k)>-1?'':'opacity:.5')+'">'+x.n+'</span>'}).join('');
+      pc.innerHTML='<div class="kind"><span class="dot" style="background:var('+kd.c+')"></span>'+kd.n+' · '+p.g+'</div><h2>'+p.n+'</h2><p>'+p.d+'</p><p><b>'+(best?'مناسب جدًا في '+s.n:'ليس في أفضل أوقاته في '+s.n)+'</b></p><div>'+tags+'</div>';
+      var cx=X(p.lon),cy=Y(p.lat);
+      if(view.w>=W-1){/* لا نغيّر العرض إن كان كاملًا */}
+    }
+    sizes();
+  }
+  applyView();render();
+})();
+</script>
+</body>
+</html>
