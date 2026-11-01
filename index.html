@@ -100,7 +100,7 @@ footer{background:var(--blue-deep);color:#D6E6F8}
     <div>
       <span class="inline-block px-4 py-1 rounded-full text-sm font-bold" style="background:rgba(200,150,46,.2);color:#F6D98B;border:1px solid rgba(246,217,139,.4)">مسابقة سراج عمان · مجتمع التعلم والبحث العلمي الرقمي</span>
       <h1 class="display font-extrabold text-4xl md:text-5xl leading-tight mt-5">منصة جيل الرقمية لدعم التعلم</h1>
-      <p class="mt-5 text-lg md:text-xl max-w-xl" style="color:#CFE3F7">افتح الموسوعة العمانية، اختر موضوعاً يلفت انتباهك، وحوّله مع فريقك إلى إنفوجرافيك أو فيديو أو خريطة تفاعلية يفهمها زملاؤك في دقيقة.</p>
+      <p class="mt-5 text-lg md:text-xl max-w-xl" style="color:#CFE3F7">افتح الموسوعة العمانية، اختر موضوعاً يلفت انتباهك، وحوّله مع فريقك إلى إنفوجرافيك أو فيديو أو خريطة تفاعلية أو صور يفهمها زملاؤك في دقيقة.</p>
       <div class="mt-8 flex flex-wrap gap-3 items-center">
         <a href="#submit" class="btn-gold inline-block">ارفع مشروعك الآن</a>
         <a href="#gallery" class="px-6 py-3 rounded-full font-bold border border-white/40 hover:bg-white/10 transition">تصفّح أعمال الزملاء</a>
@@ -135,7 +135,7 @@ footer{background:var(--blue-deep);color:#D6E6F8}
 <section id="submit" class="py-16" style="background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--cyan) 10%,transparent))">
   <div class="max-w-2xl mx-auto px-4">
     <h2 class="display font-extrabold text-3xl">شارك عملك</h2>
-    <p class="muted mt-1">ارفع عملك على جوجل درايف أو ون درايف، ثم الصق الرابط هنا.</p>
+    <p class="muted mt-1">ارفع عملك على جوجل درايف أو ون درايف ثم الصق الرابط هنا، أما الصور فترفعها مباشرة من جهازك.</p>
     <form id="workForm" class="card p-6 mt-6 grid gap-5" novalidate>
       <div class="field"><label for="name">اسم الطالب / الفريق</label><input id="name" name="studentName" required placeholder="مثال: فريق رواد الفلج"></div>
       <div class="field"><label for="grade">الصف الدراسي</label>
@@ -143,7 +143,12 @@ footer{background:var(--blue-deep);color:#D6E6F8}
       <div class="field"><label for="topic">عنوان البحث من الموسوعة العمانية</label><input id="topic" name="encyclopediaTopic" required placeholder="مثال: الأفلاج في سلطنة عُمان"></div>
       <div class="field"><label for="type">نوع العمل المرفق</label>
         <select id="type" name="workType" required><option value="">اختر النوع</option><option>إنفوجرافيك</option><option>فيديو</option><option>خريطة</option><option>تقرير تقييم</option><option>صور</option></select></div>
-      <div class="field"><label for="link">رابط العمل السحابي</label><input id="link" name="cloudLink" type="url" required dir="ltr" placeholder="https://drive.google.com/..." style="text-align:right"></div>
+      <div class="field" id="linkField"><label for="link">رابط العمل السحابي</label><input id="link" name="cloudLink" type="url" required dir="ltr" placeholder="https://drive.google.com/..." style="text-align:right"></div>
+      <div class="field hidden" id="imageField"><label for="imageFile">الصورة من جهازك</label>
+        <input id="imageFile" type="file" accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,.avif,.svg,.ico,.heic,.heif,.tif,.tiff">
+        <p class="muted text-sm mt-1">تُقبل كل صيغ الصور (JPG، PNG، HEIC من الآيفون، WEBP، GIF، BMP، TIFF، SVG...) حتى 25 ميغابايت، وتُضغط تلقائياً قبل الرفع.</p>
+        <img id="imagePreview" class="hidden mt-3 rounded-xl" alt="معاينة الصورة المختارة" style="max-height:220px;max-width:100%;object-fit:contain">
+      </div>
       <p id="formError" class="text-sm font-bold hidden" style="color:#D93636" role="alert"></p>
       <button id="submitBtn" class="btn-blue" type="submit">أرسل العمل</button>
     </form>
@@ -234,22 +239,53 @@ function renderGrid(){
     .sort((x, y) => (y.featured ? 1 : 0) - (x.featured ? 1 : 0));
   document.getElementById("grid").innerHTML = list.length ? list.map(w => {
     const [icon, tone] = LOOK[w.type] || LOOK.report;
-    const safe = typeof w.link==="string" && w.link.startsWith("https://");
-    const open = safe ? `<a class="font-bold text-sm mt-3 inline-block" style="color:var(--blue)" href="${esc(w.link)}" target="_blank" rel="noopener noreferrer">افتح العمل</a>` : "";
     const pending = w.status === "pending";
+    const uploaded = isUploadedImage(w);
+    const safe = uploaded || (typeof w.link==="string" && w.link.startsWith("https://"));
+    // الصورة المنتظرة لا يراها إلا المشرف، فتُجلب بمفتاحه ثم تُعرض (انظر loadAdminImages)
+    const hidden = uploaded && pending;
+    const open = !safe ? "" : hidden
+      ? `<a class="font-bold text-sm mt-3 inline-block" style="color:var(--blue)" data-admin-open="${esc(w.id)}" target="_blank" rel="noopener noreferrer">عرض الصورة</a>`
+      : `<a class="font-bold text-sm mt-3 inline-block" style="color:var(--blue)" href="${esc(w.link)}" target="_blank" rel="noopener noreferrer">${uploaded ? "عرض الصورة" : "افتح العمل"}</a>`;
     const approve = (ADMIN_KEY && w.id && pending) ? `<button class="text-sm font-bold mr-4" style="color:#2E8B6A" onclick="approveWork('${esc(w.id)}')">قبول</button>` : "";
     const feature = (ADMIN_KEY && w.id && !pending) ? `<button class="text-sm font-bold mr-4" style="color:var(--gold)" onclick="featureWork('${esc(w.id)}', ${w.featured ? "false" : "true"})">${w.featured ? "إلغاء التمييز" : "تمييز"}</button>` : "";
     const del = (ADMIN_KEY && w.id) ? `${approve}${feature}<button class="text-sm font-bold mr-4" style="color:#D93636" onclick="delWork('${esc(w.id)}')">حذف</button>` : "";
     const pendingBadge = pending ? `<span class="badge" style="background:#FDE8E8;color:#D93636;margin-inline-start:.4rem">قيد المراجعة</span>` : "";
     const featuredBadge = w.featured ? `<span class="badge" style="background:var(--gold);color:#1B1403;margin-inline-start:.4rem">⭐ عمل مميز</span>` : "";
-    const pic = safe ? thumbFor(w.link) : null;
-    const img = pic ? `<img src="${esc(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
+    const pic = uploaded ? (hidden ? null : w.link) : (safe ? thumbFor(w.link) : null);
+    const img = hidden && ADMIN_KEY
+      ? `<img data-admin-img="${esc(w.id)}" alt="" style="display:none">`
+      : pic ? `<img src="${esc(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
     return `<article class="card work overflow-hidden${w.featured ? " featured" : ""}">
       <div class="thumb" style="background:linear-gradient(135deg,${tone},color-mix(in srgb,${tone} 55%,#000))" aria-hidden="true">${icon}${img}</div>
       <div class="p-5"><span class="badge">${TYPE_LABEL[w.type] || ""}</span>${featuredBadge}${pendingBadge}
         <h3 class="display font-extrabold text-lg mt-2 leading-snug">${esc(w.title)}</h3>
         <p class="muted text-sm mt-1">${esc(w.team)} · ${esc(w.grade)}</p>${open}${del}</div></article>`;
   }).join("") : `<p class="muted">لا توجد أعمال مطابقة. جرّب تغيير البحث أو التصفية، أو كن أول من يشارك.</p>`;
+  loadAdminImages();
+}
+/* الصور المرفوعة مباشرة تُحفظ في المنصة ورابطها /api/image?id=... */
+function isUploadedImage(w){
+  return w.type === "image" && typeof w.link === "string" && /^\/api\/image\?id=w%3A\d{13}-[0-9a-f]{6}$/.test(w.link);
+}
+const ADMIN_BLOBS = new Map(); // تُجلب كل صورة منتظرة مرة واحدة فقط رغم التحديث كل 30 ثانية
+async function adminBlob(id){
+  if (!ADMIN_BLOBS.has(id)) {
+    ADMIN_BLOBS.set(id, fetch("/api/image?id=" + encodeURIComponent(id), {headers:{"x-admin-key": ADMIN_KEY}})
+      .then(r => r.ok ? r.blob() : null).then(b => b ? URL.createObjectURL(b) : null).catch(() => null));
+  }
+  return ADMIN_BLOBS.get(id);
+}
+function loadAdminImages(){
+  if (!ADMIN_KEY) return;
+  document.querySelectorAll("[data-admin-img]").forEach(async el => {
+    const url = await adminBlob(el.dataset.adminImg);
+    if (url && el.isConnected) { el.src = url; el.style.display = ""; }
+  });
+  document.querySelectorAll("[data-admin-open]").forEach(async el => {
+    const url = await adminBlob(el.dataset.adminOpen);
+    if (url && el.isConnected) el.href = url;
+  });
 }
 document.getElementById("q").addEventListener("input", renderGrid);
 document.getElementById("gradeFilter").addEventListener("change", renderGrid);
@@ -293,26 +329,116 @@ function toast(msg){
    ===================================================================== */
 const WEBHOOK_URL = "/api/works"; // نقطة الاستقبال في Cloudflare Pages Function (لنسخة Power Automate أضف FORWARD_URL في إعدادات Cloudflare)
 
+/* ===== رفع الصور مباشرة من الجهاز =====
+   أي صيغة صورة تُفتح في المتصفح ثم تُحوَّل إلى JPEG مضغوط (أقصى ضلع 2000 بكسل، وحتى 5 ميغابايت).
+   هذا يزيل أيضاً بيانات الموقع الجغرافي المخزّنة في صور الهواتف. GIF المتحركة تبقى كما هي إن كانت صغيرة.
+   HEIC (الآيفون) وTIFF تُفك بمكتبة تُحمَّل عند الحاجة فقط. */
+const IMG_MAX_BYTES = 5 * 1024 * 1024, IMG_MAX_INPUT = 25 * 1024 * 1024, IMG_MAX_SIDE = 2000;
+const HEIC_LIB = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+const TIFF_LIB = "https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js";
+const isImageType = () => document.getElementById("type").value === "صور";
+const extOf = f => (String(f.name || "").split(".").pop() || "").toLowerCase();
+const loadScript = src => new Promise((ok, no) => {
+  if (document.querySelector(`script[src="${src}"]`)) return ok();
+  const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("lib"));
+  document.head.appendChild(s);
+});
+async function decodeNative(blob){
+  if (window.createImageBitmap) { try { const b = await createImageBitmap(blob); return {src:b, w:b.width, h:b.height}; } catch (_) {} }
+  const url = URL.createObjectURL(blob), img = new Image();
+  img.src = url;
+  try { await img.decode(); } catch (_) { URL.revokeObjectURL(url); return null; }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return {src:img, w:img.naturalWidth || 1600, h:img.naturalHeight || 1200};
+}
+async function decodeAny(file){
+  const ext = extOf(file), t = String(file.type).toLowerCase();
+  let d = await decodeNative(file);                       // سفاري يفتح HEIC وTIFF بنفسه
+  if (d) return d;
+  if (/heic|heif/.test(t) || ext === "heic" || ext === "heif") {
+    await loadScript(HEIC_LIB);
+    let jpg = await heic2any({blob:file, toType:"image/jpeg", quality:0.9});
+    if (Array.isArray(jpg)) jpg = jpg[0];
+    return decodeNative(jpg);
+  }
+  if (/tiff/.test(t) || ext === "tif" || ext === "tiff") {
+    await loadScript(TIFF_LIB);
+    const buf = await file.arrayBuffer(), ifds = UTIF.decode(buf);
+    UTIF.decodeImage(buf, ifds[0]);
+    const c = document.createElement("canvas"); c.width = ifds[0].width; c.height = ifds[0].height;
+    c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(UTIF.toRGBA8(ifds[0])), c.width, c.height), 0, 0);
+    return {src:c, w:c.width, h:c.height};
+  }
+  return null;
+}
+async function prepareImage(file){
+  if (file.size > IMG_MAX_INPUT) throw new Error("حجم الصورة أكبر من 25 ميغابايت، اختر صورة أصغر.");
+  if ((file.type === "image/gif" || extOf(file) === "gif") && file.size <= IMG_MAX_BYTES) return new Blob([await file.arrayBuffer()], {type:"image/gif"});
+  let d;
+  try { d = await decodeAny(file); } catch (_) { d = null; }
+  if (!d) throw new Error("تعذّر فتح هذه الصورة. احفظها بصيغة JPG أو PNG ثم أعد المحاولة.");
+  let side = IMG_MAX_SIDE, quality = 0.85;
+  for (let i = 0; i < 6; i++) {
+    const scale = Math.min(1, side / Math.max(d.w, d.h));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(d.w * scale)); c.height = Math.max(1, Math.round(d.h * scale));
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);   // خلفية بيضاء للصور الشفافة
+    ctx.drawImage(d.src, 0, 0, c.width, c.height);
+    const out = await new Promise(r => c.toBlob(r, "image/jpeg", quality));
+    if (out && out.size <= IMG_MAX_BYTES) return out;
+    side = Math.round(side * 0.8); quality = Math.max(0.6, quality - 0.08);
+  }
+  throw new Error("تعذّر ضغط الصورة إلى 5 ميغابايت، اختر صورة أصغر.");
+}
+
+/* إظهار حقل الصورة بدل الرابط عند اختيار «صور» */
+function syncTypeFields(){
+  const img = isImageType();
+  document.getElementById("linkField").classList.toggle("hidden", img);
+  document.getElementById("imageField").classList.toggle("hidden", !img);
+  document.getElementById("link").required = !img;
+  document.getElementById("imageFile").required = img;
+}
+document.getElementById("type").addEventListener("change", syncTypeFields);
+let previewUrl = null;
+document.getElementById("imageFile").addEventListener("change", e => {
+  const f = e.target.files[0], p = document.getElementById("imagePreview");
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = f ? URL.createObjectURL(f) : null;
+  p.onerror = () => p.classList.add("hidden");                 // HEIC لا يُعاين في كل المتصفحات، ويُرفع رغم ذلك
+  if (previewUrl) { p.src = previewUrl; p.classList.remove("hidden"); } else p.classList.add("hidden");
+});
+
 document.getElementById("workForm").addEventListener("submit", async (e) => {
   e.preventDefault();                                   // منع إعادة تحميل الصفحة
   const form = e.target, err = document.getElementById("formError"), btn = document.getElementById("submitBtn");
   err.classList.add("hidden");
+  const fail = msg => { err.textContent = msg; err.classList.remove("hidden"); };
 
   // 1) تحويل بيانات النموذج إلى كائن JSON
   const payload = Object.fromEntries(new FormData(form).entries());
-  payload.submittedAt = new Date().toISOString();
+  const imageMode = isImageType();
+  if (imageMode) delete payload.cloudLink;
 
   // 2) تحقق بسيط
-  if (Object.values(payload).some(v => !String(v).trim())) {
-    err.textContent = "أكمل جميع الحقول قبل الإرسال."; err.classList.remove("hidden"); return;
-  }
-  if (!/^https?:\/\//i.test(payload.cloudLink)) {
-    err.textContent = "الصق رابطاً صحيحاً يبدأ بـ https://"; err.classList.remove("hidden"); return;
-  }
+  if (Object.values(payload).some(v => !String(v).trim())) return fail("أكمل جميع الحقول قبل الإرسال.");
+  const file = document.getElementById("imageFile").files[0];
+  if (imageMode && !file) return fail("اختر الصورة من جهازك.");
+  if (!imageMode && !/^https?:\/\//i.test(payload.cloudLink)) return fail("الصق رابطاً صحيحاً يبدأ بـ https://");
+  payload.submittedAt = new Date().toISOString();
 
-  btn.disabled = true; btn.textContent = "جارٍ الإرسال...";
+  btn.disabled = true; btn.textContent = imageMode ? "جارٍ تجهيز الصورة..." : "جارٍ الإرسال...";
   try {
-    if (WEBHOOK_URL) {
+    if (imageMode) {
+      const image = await prepareImage(file);
+      btn.textContent = "جارٍ رفع الصورة...";
+      const fd = new FormData();
+      for (const k of ["studentName", "grade", "encyclopediaTopic", "workType"]) fd.append(k, payload[k]);
+      fd.append("image", image, image.type === "image/gif" ? "image.gif" : "image.jpg");
+      const res = await fetch(WEBHOOK_URL, {method:"POST", body:fd});
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || ("HTTP " + res.status)); }
+    } else if (WEBHOOK_URL) {
       // 3) طلب POST إلى الـ Webhook
       const res = await fetch(WEBHOOK_URL, {
         method: "POST",
@@ -326,6 +452,8 @@ document.getElementById("workForm").addEventListener("submit", async (e) => {
     }
     toast("وصل عملك، وسيظهر في المعرض بعد مراجعة المعلم. شكراً لمشاركتك.");
     form.reset();
+    document.getElementById("imagePreview").classList.add("hidden");
+    syncTypeFields();
     loadWorks();
   } catch (error) {
     console.error(error);

@@ -23,6 +23,24 @@ const HOSTS = [
 ];
 
 const MAX_BODY_BYTES = 4096;
+// الصور تُرفع مباشرة (multipart/form-data) وتُحفظ في KV بمفتاح img:<معرّف العمل>.
+// المتصفح يحوّل أي امتداد (HEIC، TIFF، BMP، SVG...) إلى JPEG قبل الرفع، فالخادم لا يقبل إلا هذه الصيغ الأربع بعد فحص محتواها الفعلي.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = MAX_IMAGE_BYTES + 64 * 1024;
+const ID_RE = /^w:\d{13}-[0-9a-f]{6}$/;
+
+function sniffImage(bytes) {
+  const b = bytes;
+  if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b.length > 6 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38) return "image/gif";
+  if (b.length > 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+      b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  return null;
+}
+
+const newWorkId = () =>
+  `w:${String(9999999999999 - Date.now()).padStart(13, "0")}-${crypto.randomUUID().slice(0, 6)}`;
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_SECONDS = 10 * 60;
 
@@ -123,13 +141,17 @@ export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.WORKS_KV) return json({ error: "التخزين غير مهيأ" }, 503);
   if (!sameOriginWhenProvided(request)) return json({ error: "مصدر الطلب غير مسموح" }, 403);
 
-  const contentType = request.headers.get("Content-Type") || "";
-  if (!contentType.toLowerCase().startsWith("application/json")) {
-    return json({ error: "نوع المحتوى يجب أن يكون JSON" }, 415);
+  const contentType = (request.headers.get("Content-Type") || "").toLowerCase();
+  const isUpload = contentType.startsWith("multipart/form-data");
+  if (!isUpload && !contentType.startsWith("application/json")) {
+    return json({ error: "نوع المحتوى يجب أن يكون JSON أو ملف صورة" }, 415);
   }
 
   const declaredLength = Number(request.headers.get("Content-Length") || 0);
-  if (declaredLength > MAX_BODY_BYTES) return json({ error: "حجم الطلب كبير جداً" }, 413);
+  if (isUpload && !declaredLength) return json({ error: "حجم الطلب غير معروف" }, 411);
+  if (declaredLength > (isUpload ? MAX_UPLOAD_BYTES : MAX_BODY_BYTES)) {
+    return json({ error: isUpload ? "حجم الصورة أكبر من 5 ميغابايت" : "حجم الطلب كبير جداً" }, 413);
+  }
 
   const rate = await takeRateLimitSlot(request, env);
   if (!rate.allowed) {
@@ -139,6 +161,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
       { "Retry-After": String(rate.retryAfter) }
     );
   }
+
+  if (isUpload) return handleImageUpload(request, env, waitUntil);
 
   const raw = await request.text();
   if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) {
@@ -162,6 +186,10 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const grade = clip(body.grade, 30);
   const url = isAllowedUrl(body.cloudLink);
 
+  if (type === "image") {
+    return json({ error: "الصور تُرفع مباشرة من الجهاز، اختر ملف الصورة بدل الرابط." }, 400);
+  }
+
   if (!type || !title || !team || !ALLOWED_GRADES.has(grade) || !url) {
     return json({
       error: "بيانات غير مقبولة. أكمل الحقول واستخدم رابط HTTPS من جوجل درايف أو ون درايف أو SharePoint أو يوتيوب."
@@ -178,10 +206,57 @@ export async function onRequestPost({ request, env, waitUntil }) {
     at: Date.now()
   };
 
-  const id = `w:${String(9999999999999 - Date.now()).padStart(13, "0")}-${crypto.randomUUID().slice(0, 6)}`;
+  const id = newWorkId();
   await env.WORKS_KV.put(id, "1", { metadata: work });
+  forwardWork(env, waitUntil, id, work);
+  return json({ ok: true, id, ...work }, 201);
+}
 
-  if (env.FORWARD_URL) {
+async function handleImageUpload(request, env, waitUntil) {
+  let form;
+  try {
+    form = await request.formData();
+  } catch {
+    return json({ error: "تعذّرت قراءة الملف المرفوع" }, 400);
+  }
+
+  const title = clip(form.get("encyclopediaTopic"), 100);
+  const team = clip(form.get("studentName"), 60);
+  const grade = clip(form.get("grade"), 30);
+  const file = form.get("image");
+
+  if (TYPE_MAP[form.get("workType")] !== "image" || !title || !team || !ALLOWED_GRADES.has(grade)) {
+    return json({ error: "بيانات غير مقبولة. أكمل جميع الحقول." }, 400);
+  }
+  if (!file || typeof file === "string" || !file.size) {
+    return json({ error: "اختر ملف الصورة أولاً" }, 400);
+  }
+  if (file.size > MAX_IMAGE_BYTES) return json({ error: "حجم الصورة أكبر من 5 ميغابايت" }, 413);
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const mime = sniffImage(bytes);
+  if (!mime) return json({ error: "الملف المرفوع ليس صورة صالحة" }, 415);
+
+  const id = newWorkId();
+  const work = {
+    title,
+    team,
+    grade,
+    type: "image",
+    link: `/api/image?id=${encodeURIComponent(id)}`,
+    status: "pending",
+    at: Date.now()
+  };
+
+  // الصورة أولاً، ثم سجل العمل؛ فلا يظهر عمل بلا صورة.
+  await env.WORKS_KV.put(`img:${id}`, bytes, { metadata: { ct: mime, size: bytes.length } });
+  await env.WORKS_KV.put(id, "1", { metadata: work });
+  forwardWork(env, waitUntil, id, work);
+  return json({ ok: true, id, ...work }, 201);
+}
+
+function forwardWork(env, waitUntil, id, work) {
+  if (env.FORWARD_URL && waitUntil) {
     waitUntil((async () => {
       try {
         const forwardUrl = new URL(env.FORWARD_URL);
@@ -199,8 +274,6 @@ export async function onRequestPost({ request, env, waitUntil }) {
       }
     })());
   }
-
-  return json({ ok: true, id, ...work }, 201);
 }
 
 export async function onRequestDelete({ request, env }) {
@@ -211,6 +284,7 @@ export async function onRequestDelete({ request, env }) {
   if (!/^w:\d{13}-[0-9a-f]{6}$/.test(id)) return json({ error: "معرّف غير صحيح" }, 400);
 
   await env.WORKS_KV.delete(id);
+  await env.WORKS_KV.delete(`img:${id}`); // لا يضر إن لم تكن للعمل صورة
   return json({ ok: true });
 }
 
