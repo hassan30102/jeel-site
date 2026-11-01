@@ -7,6 +7,7 @@ const TYPE_MAP = {
   "إنفوجرافيك": "infographic",
   "فيديو": "video",
   "خريطة": "map",
+  "خريطة تفاعلية": "map",
   "تقرير تقييم": "report",
   "صور": "image"
 };
